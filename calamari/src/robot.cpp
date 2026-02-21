@@ -1,16 +1,37 @@
 #include <Arduino.h>
+#include <BluetoothSerial.h>
+#include <ArduinoJson.h>
 
-int LED = 2;
+BluetoothSerial SerialBT;
 
 void setup()
 {
-    pinMode(LED, OUTPUT);
+    Serial.begin(115200);
+
+    // Connect to the Controller
+    SerialBT.begin("CalamariRobot");
+    Serial.print("Controller Serial Started. Discoverable as 'CalamariRobot'.");
+    while (!SerialBT.connected())
+    {
+        Serial.println("Trying to connect to 'CalamariController'");
+        delay(1000);
+    }
+    Serial.println("Connected to 'CalamariController'");
 }
 
 void loop()
 {
-    digitalWrite(LED, HIGH);
-    delay(1000);
-    digitalWrite(LED, LOW);
-    delay(1000);
+    if (SerialBT.available())
+    {
+        String incomingData = SerialBT.readStringUntil('\n');
+        StaticJsonDocument<128> jsonDoc;
+        DeserializationError error = deserializeJson(jsonDoc, incomingData);
+
+        if (error)
+            return;
+
+        int x = jsonDoc["x"];
+
+        Serial.println(x);
+    }
 }
